@@ -1,8 +1,8 @@
+require('dotenv').config();
 const fastify = require('fastify')({ logger: true });
 const mysql = require('mysql2/promise');
 const path = require('path');
 const bcrypt = require('bcrypt');
-
 // ================= CORS =================
 fastify.register(require('@fastify/cors'), {
   origin: "*",
@@ -28,11 +28,11 @@ fastify.register(require('@fastify/jwt'), {
 
 // ================= DB =================
 const db = mysql.createPool({
-  host: 'mysql-235abaa9-nemchankhea02-75ee.k.aivencloud.com', // យកពី Aiven
-  port: 24930,                                               // យកពី Aiven
-  user: 'avnadmin',                                          // យកពី Aiven
-  password: 'AVNS_YofHVrL_vaTLlhceW_S', 
-  database: 'defaultdb',                                     // ឈ្មោះ database លើ Aiven
+  host:'mysql-235abaa9-nemchankhea02-75ee.k.aivencloud.com',
+  port:24930,
+  user:'avnadmin',
+  password:process.env.DB_PASSWORD, // ប្រើប្រថាប់ត្រានេះជំនួស Password ពិត
+  database:'defaultdb',                               // ឈ្មោះ database លើ Aiven
   waitForConnections: true,
   connectionLimit: 10,
   timezone: '+07:00',
@@ -250,7 +250,7 @@ async function initCompanyTable() {
 initCompanyTable();
 
 // ================= LOGIN =================
-fastify.post('/login', async (req, reply) => {
+fastify.post('/api/login', async (req, reply) => {
   const { username, password } = req.body;
   const [rows] = await db.query("SELECT * FROM users WHERE username=?", [username]);
   if (!rows.length) return reply.code(401).send({ message: "User not found" });
