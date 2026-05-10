@@ -1,28 +1,60 @@
 <template>
-  <div class="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
-      <div class="bg-blue-600 p-8 text-center text-white">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4 text-3xl">🛒</div>
-        <h2 class="text-2xl font-bold">POS System</h2>
-        <p class="text-blue-100 text-sm mt-1">Sign in to start your session</p>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="brand-icon">🛒</div>
+        <h2 class="brand-title">KH POS System</h2>
+        <p class="brand-subtitle">Sign in to start your session</p>
       </div>
 
-      <div class="p-8 space-y-5">
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Username</label>
-          <input v-model="username" type="text" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="admin" />
+      <div class="login-body">
+        <div class="form-group">
+          <label class="input-label">Username</label>
+          <input 
+            v-model="username" 
+            type="text" 
+            class="form-input" 
+            placeholder="Enter username" 
+            :disabled="loading"
+          />
         </div>
 
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Password</label>
-          <input v-model="password" type="password" @keyup.enter="handleLogin" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" />
+        <div class="form-group">
+          <label class="input-label">Password</label>
+          <input 
+            v-model="password" 
+            type="password" 
+            class="form-input" 
+            placeholder="••••••••" 
+            @keyup.enter="handleLogin"
+            :disabled="loading"
+          />
         </div>
 
-        <div v-if="errorMessage" class="text-red-500 text-sm bg-red-50 p-2 rounded">{{ errorMessage }}</div>
+        <transition name="fade">
+          <div v-if="errorMessage" class="error-alert">
+            {{ errorMessage }}
+          </div>
+        </transition>
 
-        <button @click="handleLogin" :disabled="loading" class="w-full py-4 rounded-xl text-white bg-blue-600 hover:bg-blue-700 font-bold shadow-lg disabled:opacity-50 transition-all">
-          {{ loading ? 'Authenticating...' : 'Sign In' }}
+        <button 
+          @click="handleLogin" 
+          :disabled="loading" 
+          class="login-button"
+        >
+          <span v-if="!loading">Sign In</span>
+          <span v-else class="flex items-center justify-center">
+            <svg class="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing...
+          </span>
         </button>
+      </div>
+      
+      <div class="login-footer">
+        by khea
       </div>
     </div>
   </div>
@@ -33,27 +65,54 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 
+// អថេរសម្រាប់គ្រប់គ្រងទិន្នន័យ
 const username = ref("");
 const password = ref("");
 const errorMessage = ref("");
 const loading = ref(false);
 const router = useRouter();
 
+// បង្កើត Base URL សម្រាប់ API (ស្របតាម Backend លើ Render)
+const response = await axios.post('https://pos-backend-live.onrender.com/api/login', loginData);
 const handleLogin = async () => {
+  // ការពារការចុចដដែលៗ និងសម្អាត Error ចាស់
+  if (!username.value || !password.value) {
+    errorMessage.value = "Please enter both username and password";
+    return;
+  }
+
   loading.value = true;
   errorMessage.value = "";
+
   try {
-    const res = await axios.post("http://localhost:3002/login", {
+    const res = await axios.post(`${API_URL}/login`, {
       username: username.value,
       password: password.value
     });
+
+    // រក្សាទុក Token និងព័ត៌មានអ្នកប្រើប្រាស់
     localStorage.setItem("token", res.data.token);
     localStorage.setItem("user", JSON.stringify(res.data.user));
+
+    // ទៅកាន់ទំព័រ Dashboard បន្ទាប់ពីជោគជ័យ
     router.push({ name: 'dashboard' });
   } catch (err) {
-    errorMessage.value = err.response?.data?.message || "Connection failed";
+    // បង្ហាញ Error Message ពី Backend ឬសារលំនាំដើម
+    errorMessage.value = err.response?.data?.message || "Cannot connect to server. Please try again.";
   } finally {
     loading.value = false;
   }
 };
 </script>
+
+<style scoped>
+/* ការប្រើប្រាស់ @apply តាមការចង់បានរបស់អ្នក */
+
+/* Animation */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+</style>
