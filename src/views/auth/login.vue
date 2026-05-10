@@ -75,32 +75,20 @@ const router = useRouter();
 // បង្កើត Base URL សម្រាប់ API (ស្របតាម Backend លើ Render)
 const response = await axios.post('https://pos-backend-live.onrender.com/api/login', loginData);
 const handleLogin = async () => {
-  // ការពារការចុចដដែលៗ និងសម្អាត Error ចាស់
-  if (!username.value || !password.value) {
-    errorMessage.value = "Please enter both username and password";
-    return;
-  }
-
-  loading.value = true;
-  errorMessage.value = "";
-
   try {
-    const res = await axios.post(`${API_URL}/login`, {
+    // បងត្រូវប្រើ API_URL ដែលបងទើបតែកែហ្នឹង
+    // ចំណាំ៖ បើ API_URL មាន /api រួចហើយ ក្នុង axios ដាក់តែ /login បានហើយ
+    const response = await axios.post(`${API_URL}/login`, {
       username: username.value,
       password: password.value
     });
-
-    // រក្សាទុក Token និងព័ត៌មានអ្នកប្រើប្រាស់
-    localStorage.setItem("token", res.data.token);
-    localStorage.setItem("user", JSON.stringify(res.data.user));
-
-    // ទៅកាន់ទំព័រ Dashboard បន្ទាប់ពីជោគជ័យ
-    router.push({ name: 'dashboard' });
-  } catch (err) {
-    // បង្ហាញ Error Message ពី Backend ឬសារលំនាំដើម
-    errorMessage.value = err.response?.data?.message || "Cannot connect to server. Please try again.";
-  } finally {
-    loading.value = false;
+    
+    // បើ Login ជោគជ័យ
+    alert("Login Successful!");
+  } catch (error) {
+    console.error(error);
+    // បើវានៅតែចេញ Connection Failed បងត្រូវឆែកមើល CORS នៅ Backend
+    alert("Login Failed: " + (error.response?.data?.message || "Connection error"));
   }
 };
 </script>
