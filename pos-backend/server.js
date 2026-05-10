@@ -28,11 +28,11 @@ fastify.register(require('@fastify/jwt'), {
 
 // ================= DB =================
 const db = mysql.createPool({
-  host:'mysql-235abaa9-nemchankhea02-75ee.k.aivencloud.com',
-  port:24930,
-  user:'avnadmin',
-  password:process.env.DB_PASSWORD, // ប្រើប្រថាប់ត្រានេះជំនួស Password ពិត
-  database:'defaultdb',                               // ឈ្មោះ database លើ Aiven
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,                              // ឈ្មោះ database លើ Aiven
   waitForConnections: true,
   connectionLimit: 10,
   timezone: '+07:00',
@@ -86,20 +86,21 @@ async function initDatabase() {
   await conn.query("SET time_zone = '+07:00'");
 
   // Users table
-  await conn.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      username VARCHAR(50) UNIQUE,
-      password VARCHAR(255),
-      role VARCHAR(20) DEFAULT 'user',
-      email VARCHAR(100) NULL,
-      fullname VARCHAR(100) NULL,
-      phone VARCHAR(20) NULL,
-      address TEXT NULL,
-      avatar VARCHAR(500) NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+await conn.query(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE,
+    password VARCHAR(255) NULL, 
+    role VARCHAR(20) DEFAULT 'user',
+    email VARCHAR(100) NULL,
+    github_id VARCHAR(100) NULL UNIQUE, 
+    fullname VARCHAR(100) NULL,
+    phone VARCHAR(20) NULL,
+    address TEXT NULL,
+    avatar VARCHAR(500) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`);
 
   // Login history table
   await conn.query(`
@@ -1262,5 +1263,12 @@ const start = async () => {
     process.exit(1);
   }
 };
-
+db.getConnection()
+  .then(connection => {
+    console.log('✅ success! Connected to Aiven MySQL');
+    connection.release();
+  })
+  .catch(err => {
+    console.error('❌ error! can not connect to Database Aiven:', err.message);
+  });
 start();
