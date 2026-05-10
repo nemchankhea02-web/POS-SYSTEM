@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'RobotoMono-VariableFont_wght';
+    src: url(./fonts/RobotoMono-VariableFont_wght.ttf);
+   
+}
+
+@theme {
+    --font-p: 'RobotoMono-VariableFont_wght';
+}

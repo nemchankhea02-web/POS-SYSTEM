@@ -1,0 +1,92 @@
+# ណែនាំដំឡើង POS System
+## (Vue 3 + Tailwind CSS + Fastify + MySQL)
+---
+## 1. តម្រូវការ (Requirements)
+សូមធ្វើការដំឡើងកម្មវិធីខាងក្រោមជាមុន៖
+* Node.js (version 18 ឡើងទៅ)
+* MySQL Server
+* Git (optional)
+---
+## 2. រចនាសម្ព័ន្ធ Project
+pos-system/
+│
+├── backend/      → API (Fastify + Node.js)
+├── frontend/     → Vue 3 + Tailwind CSS
+└── database/     → ឯកសារ SQL
+---
+## 3. ដំឡើង Backend (Fastify)
+### ជំហានទី 1: ចូលទៅកាន់ថត backend
+```bash
+cd backend
+```
+### ជំហានទី 2: ដំឡើង packages
+```bash
+npm install
+```
+### ជំហានទី 3: កំណត់ Database
+បើកឯកសារ `server.js` ហើយកែប្រែ៖
+```js
+const db = mysql.createPool({
+  host: 'localhost',
+  user: 'your_username',
+  password: 'your_password',
+  database: 'pos_db'
+});
+```
+### ជំហានទី 4: បង្កើត និង Import Database
+បើក MySQL រួចរត់ command ខាងក្រោម៖
+```sql
+CREATE DATABASE pos_db;
+```
+បន្ទាប់មក import file `pos_db.sql` ដែលមាននៅក្នុងថត `/database`
+---
+### ជំហានទី 5: ដំណើរការ Backend Server
+```bash
+node server.js
+```
+Server នឹងដំណើរការនៅ៖
+http://localhost:3002
+---
+## 4. ដំឡើង Frontend (Vue + Tailwind)
+### ជំហានទី 1: ចូលទៅកាន់ថត frontend
+```bash
+cd frontend
+```
+### ជំហានទី 2: ដំឡើង packages
+```bash
+npm install
+```
+### ជំហានទី 3: ដំណើរការ Vue App
+```bash
+npm run dev
+```
+App នឹងដំណើរការនៅ៖
+http://localhost:5173
+---
+## 5. មុខងារ (Features)
+
+* Login ប្រើ JWT
+* គ្រប់គ្រងផលិតផល (Product)
+* ប្រព័ន្ធលក់ (POS)
+* Dashboard (របាយការណ៍ និង stock)
+* ការជូនដំណឹង stock ទាប
+---
+## 6. ចំណាំ (Notes)
+* ត្រូវដំណើរការ Backend មុន Frontend
+* ត្រូវប្រាកដថា MySQL កំពុងដំណើរការ
+* ពិនិត្យ API URL នៅ frontend (http://localhost:3001)
+---
+## 7. ដោះស្រាយបញ្ហា (Troubleshooting)
+### Port បានប្រើរួច
+កែ port នៅក្នុង `server.js`៖
+```js
+fastify.listen({ port: 3002 });
+```
+### មិនអាចភ្ជាប់ Database បាន
+* ពិនិត្យ MySQL កំពុងដំណើរការ
+* ពិនិត្យ username និង password
+### npm មានបញ្ហា
+```bash
+npm install
+```
+---
