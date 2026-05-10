@@ -59,21 +59,20 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 
-// អថេរសម្រាប់គ្រប់គ្រងទិន្នន័យ
+// ១. បង្កើត Base URL សម្រាប់ API (ស្របតាម Backend លើ Render)
+const API_URL = "https://pos-backend-live.onrender.com/api";
+
 const username = ref("");
 const password = ref("");
 const errorMessage = ref("");
 const loading = ref(false);
 const router = useRouter();
 
-// បង្កើត Base URL សម្រាប់ API (ស្របតាម Backend លើ Render)
-const response = await axios.post('https://pos-backend-live.onrender.com/api/login', loginData);
 const handleLogin = async () => {
   // ការពារការចុចដដែលៗ និងសម្អាត Error ចាស់
   if (!username.value || !password.value) {
@@ -85,20 +84,24 @@ const handleLogin = async () => {
   errorMessage.value = "";
 
   try {
+    // ២. ហៅទៅកាន់ API_URL/login
     const res = await axios.post(`${API_URL}/login`, {
       username: username.value,
       password: password.value
     });
 
     // រក្សាទុក Token និងព័ត៌មានអ្នកប្រើប្រាស់
-    localStorage.setItem("token", res.data.token);
-    localStorage.setItem("user", JSON.stringify(res.data.user));
-
-    // ទៅកាន់ទំព័រ Dashboard បន្ទាប់ពីជោគជ័យ
-    router.push({ name: 'dashboard' });
+    if (res.data.token) {
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      
+      // ទៅកាន់ទំព័រ Dashboard បន្ទាប់ពីជោគជ័យ
+      router.push({ name: 'dashboard' });
+    }
   } catch (err) {
-    // បង្ហាញ Error Message ពី Backend ឬសារលំនាំដើម
-    errorMessage.value = err.response?.data?.message || "Cannot connect to server. Please try again.";
+    console.error("Login Error:", err);
+    // បង្ហាញ Error Message ពី Backend
+    errorMessage.value = err.response?.data?.message || "Connection failed. Check your internet.";
   } finally {
     loading.value = false;
   }
