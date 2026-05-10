@@ -1,5 +1,6 @@
 const fastify = require('fastify')({ logger: true });
 const mysql = require('mysql2/promise');
+const path = require('path');
 const bcrypt = require('bcrypt');
 
 // ================= CORS =================
@@ -9,6 +10,17 @@ fastify.register(require('@fastify/cors'), {
   allowedHeaders: ['Content-Type', 'Authorization']
 });
 
+const distPath = path.join(__dirname, '../dist');
+
+fastify.register(require('@fastify/static'), {
+  root: distPath,
+  prefix: '/', // ឱ្យវាស្គាល់រាល់ file ទាំងអស់ចាប់ពី root ទៅ
+  wildcard: false // បិទ wildcard ត្រង់នេះ ដើម្បីកុំឱ្យជាន់ជាមួយ route ខាងក្រោម
+});
+// ២. បង្កើត Route ដើម្បីឱ្យវាបើក index.html ជាដំបូង
+fastify.get('/*', (req, reply) => {
+  return reply.sendFile('index.html');
+});
 // ================= JWT =================
 fastify.register(require('@fastify/jwt'), {
   secret: 'supersecretkey'
@@ -16,16 +28,19 @@ fastify.register(require('@fastify/jwt'), {
 
 // ================= DB =================
 const db = mysql.createPool({
-  host: 'localhost',
-  user: 'pos_user',
-  password: 'strongpassword123',
-  database: 'pos_db',
+  host: 'mysql-235abaa9-nemchankhea02-75ee.k.aivencloud.com', // យកពី Aiven
+  port: 24930,                                               // យកពី Aiven
+  user: 'avnadmin',                                          // យកពី Aiven
+  password: 'AVNS_YofHVrL_vaTLlhceW_S', 
+  database: 'defaultdb',                                     // ឈ្មោះ database លើ Aiven
   waitForConnections: true,
   connectionLimit: 10,
   timezone: '+07:00',
-  dateStrings: true
+  dateStrings: true,
+  ssl: {
+    rejectUnauthorized: false // ត្រូវតែមានបន្ទាត់នេះ ទើបអាចភ្ជាប់ទៅ Cloud បាន
+  }
 });
-
 // ================= AUTH =================
 fastify.decorate('authenticate', async (req, reply) => {
   try {
@@ -1230,23 +1245,22 @@ async function checkLowStock() {
 }
 setInterval(() => checkLowStock(), 30 * 60 * 1000);
 setTimeout(() => checkLowStock(), 5000);
-
+// សម្រាប់ឱ្យ Vue Router ដើរ (SPA)
+fastify.setNotFoundHandler((req, reply) => {
+  return reply.sendFile('index.html');
+});
 // ================= START SERVER =================
-fastify.listen({ port: 3002, host: '0.0.0.0' }, (err) => {
-  if (err) {
+const start = async () => {
+  try {
+    // ប្រើ process.env.PORT ដើម្បីឱ្យ Render កំណត់លេខ Port ឱ្យខ្លួនឯង
+    const port = process.env.PORT || 3002; 
+    
+    await fastify.listen({ port: port, host: '0.0.0.0' });
+    console.log(`🚀 Server running on http://localhost:${port}`);
+  } catch (err) {
     fastify.log.error(err);
     process.exit(1);
   }
-  console.log('🚀 Server running on http://localhost:3002');
-  console.log('📊 API Endpoints ready:');
-  console.log('   - POST /login');
-  console.log('   - GET /users');
-  console.log('   - GET /products');
-  console.log('   - POST /sales');
-  console.log('   - GET /dashboard/stats (Cambodia Timezone)');
-  console.log('   - GET /reports/sales');
-  console.log('   - GET /reports/products');
-  console.log('   - GET /reports/customers');
-  console.log('   - GET /customers');
-  console.log('   - GET /notifications');
-});
+};
+
+start();
