@@ -62,14 +62,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '../../api.js';
-// ឆែកមើលថាតើកំពុងរត់លើម៉ាស៊ីនបង (Local) ឬលើ Render
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-// បើ Local ប្រើ port 3002 បើលើ Render ប្រើ URL របស់បង
-const API_URL = isLocal 
-  ? "http://localhost:3002/api" 
-  : "https://pos-backend-live.onrender.com/api";
+import api from '../../api.js'; // ហៅ api.js ដែលបងបានរៀបចំទុកមកប្រើ
 
 const username = ref("");
 const password = ref("");
@@ -87,7 +80,9 @@ const handleLogin = async () => {
   errorMessage.value = "";
 
   try {
-    const res = await api.post(`${API_URL}/login`, {
+    // ចំណុចសំខាន់៖ បងមិនបាច់ដាក់ ${API_URL} ទៀតទេ 
+    // ព្រោះក្នុង api.js វាមាន baseURL រួចហើយ
+    const res = await api.post('/login', {
       username: username.value,
       password: password.value
     });
@@ -95,11 +90,12 @@ const handleLogin = async () => {
     if (res.data.token) {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-      router.push({ name: '/dashboard' });
+      
+      // ទៅកាន់ Dashboard
+      router.push({ name: '/dashboard' }); 
     }
   } catch (err) {
     console.error("Login Error:", err);
-    // បង្ហាញ Error Message ពី Database ប្រសិនបើមានបញ្ហា Access Denied
     errorMessage.value = err.response?.data?.message || "Connection failed. Check your internet.";
   } finally {
     loading.value = false;
