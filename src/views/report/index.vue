@@ -223,8 +223,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
-
+import api from '../plugins/api.js'; 
 const sales = ref([])
 const recentSales = ref([])
 const period = ref('year')

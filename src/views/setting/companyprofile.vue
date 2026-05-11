@@ -339,8 +339,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import axios from "axios";
-
+import api from '../plugins/api.js'; 
 // State
 const saving = ref(false);
 const successMessage = ref("");

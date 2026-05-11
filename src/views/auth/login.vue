@@ -62,7 +62,8 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+import api from '../plugins/api.js'; 
+  
 
 // ឆែកមើលថាតើកំពុងរត់លើម៉ាស៊ីនបង (Local) ឬលើ Render
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -96,7 +97,7 @@ const handleLogin = async () => {
     if (res.data.token) {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-      router.push({ name: 'dashboard' });
+      router.push({ name: '/dashboard' });
     }
   } catch (err) {
     console.error("Login Error:", err);

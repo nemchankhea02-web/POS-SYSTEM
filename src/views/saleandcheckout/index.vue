@@ -159,8 +159,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import axios from "axios";
-
+import api from '../plugins/api.js'; 
 const router = useRouter();
 const products = ref([]);
 const cart = ref([]);

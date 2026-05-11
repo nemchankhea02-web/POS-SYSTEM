@@ -257,8 +257,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue"
-import axios from "axios"
-
+import api from '../plugins/api.js'; 
 const search = ref("")
 const products = ref([])
 const loading = ref(false)

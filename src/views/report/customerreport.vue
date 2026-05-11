@@ -253,8 +253,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
-
+import api from '../plugins/api.js'; 
 const customers = ref([])
 const loading = ref(false)
 const showHistoryModal = ref(false)

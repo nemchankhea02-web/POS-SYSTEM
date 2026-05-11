@@ -266,12 +266,13 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import axios from "axios";
-import apihah from '../../api.js'; // ទាញយក apiClient មកប្រើ
+// ប្តូរពី import axios from "axios"; មកជា៖
+import api from '../plugins/api.js'; 
 
+// ពេលហៅ API ត្រូវប្រើ api.get ឬ api.post
 const fetchStats = async () => {
   try {
-    const res = await api.get('/dashboard/stats'); // វានឹងផ្ញើ Token ទៅអូតូ
+    const res = await api.get('/dashboard/stats'); // វានឹងថែម /api និង Token ឱ្យអូតូ
     stats.value = res.data;
   } catch (error) {
     console.error("Fetch error:", error);

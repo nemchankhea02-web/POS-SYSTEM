@@ -214,8 +214,7 @@
 <script setup>
 /* NO CHANGES TO YOUR SCRIPT LOGIC */
 import { ref, computed, onMounted } from "vue";
-import axios from "axios";
-
+import api from '../plugins/api.js'; 
 const loading = ref(false);
 const successMessage = ref("");
 const errorMessage = ref("");

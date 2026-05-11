@@ -204,8 +204,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import axios from "axios";
-
+import api from '../plugins/api.js'; 
 const router = useRouter();
 const route = useRoute();
 

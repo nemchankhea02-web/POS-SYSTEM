@@ -243,8 +243,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
-
+import api from '../plugins/api.js'; 
 const sales = ref([])
 const loading = ref(false)
 const searchReceipt = ref('')
