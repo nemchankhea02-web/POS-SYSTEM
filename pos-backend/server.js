@@ -40,6 +40,7 @@ const db = mysql.createPool({
   }
 });
 // ================= AUTH =================
+
 fastify.decorate('authenticate', async (req, reply) => {
   try {
     await req.jwtVerify();

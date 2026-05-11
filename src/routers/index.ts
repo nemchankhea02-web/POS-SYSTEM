@@ -70,9 +70,9 @@ router.beforeEach((to, _from, next) => {
         role = payload.role;
       }
     } catch (e) {
-      console.error("JWT Decode Error:", e);
-      localStorage.removeItem("token");
-    }
+  localStorage.clear(); // លុបឱ្យអស់ កុំឱ្យវាវិលជុំ
+  next({ name: 'login' });
+}
   }
 
   // ២. លក្ខខណ្ឌការពារការវិលជុំ (Infinite Loop Fix)
