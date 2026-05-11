@@ -275,7 +275,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import api from '../plugins/api.js'; 
+import api from '../../api.js'; 
 const router = useRouter();
 const cart = ref([]);
 const customerName = ref("");

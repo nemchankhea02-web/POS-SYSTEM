@@ -339,7 +339,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import api from '../plugins/api.js'; 
+import api from '../../api.js'; 
 // State
 const saving = ref(false);
 const successMessage = ref("");

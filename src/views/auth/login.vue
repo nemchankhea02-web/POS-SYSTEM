@@ -62,7 +62,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '../plugins/api.js'; 
+import api from '../../api.js'; 
   
 
 // ឆែកមើលថាតើកំពុងរត់លើម៉ាស៊ីនបង (Local) ឬលើ Render

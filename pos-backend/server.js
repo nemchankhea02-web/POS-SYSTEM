@@ -6,12 +6,12 @@ const bcrypt = require('bcrypt');
 
 // ================= CORS =================
 // ១. Register CORS ជាមុនគេបង្អស់
+// ក្នុង server.js (Backend)
 fastify.register(require('@fastify/cors'), {
-  origin: ["https://pos-system-amjf.onrender.com"], // ដាក់ Link frontend របស់បង
+  origin: true, // អនុញ្ញាតឱ្យគ្រប់ Domain ចូលប្រើបាន (ល្អសម្រាប់ពេលតេស្ត)
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization'] // ត្រូវតែមាន Authorization ដើម្បីផ្ញើ Token
 });
-
 // ================= JWT =================
 fastify.register(require('@fastify/jwt'), {
   secret: process.env.JWT_SECRET || 'supersecretkey'
