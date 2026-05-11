@@ -271,10 +271,10 @@ import apihah from '../../api.js'; // ទាញយក apiClient មកប្រ�
 
 const fetchStats = async () => {
   try {
-    const res = await api.get('/dashboard/stats'); // វានឹងកាន់ Token ទៅជាមួយអូតូ
+    const res = await api.get('/dashboard/stats'); // វានឹងផ្ញើ Token ទៅអូតូ
     stats.value = res.data;
   } catch (error) {
-    console.error("Dashboard fetch error:", error);
+    console.error("Fetch error:", error);
   }
 };
 const router = useRouter();
