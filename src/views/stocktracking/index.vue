@@ -257,7 +257,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue"
-import api from '../plugins/api.js'; 
+import api from '../../api.js'; 
 const search = ref("")
 const products = ref([])
 const loading = ref(false)
