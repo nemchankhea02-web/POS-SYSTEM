@@ -3,7 +3,6 @@ const fastify = require('fastify')({ logger: true });
 const mysql = require('mysql2/promise');
 const path = require('path');
 const bcrypt = require('bcrypt');
-
 // ================= CORS =================
 fastify.register(require('@fastify/cors'), {
   origin: "*",
@@ -11,9 +10,20 @@ fastify.register(require('@fastify/cors'), {
   allowedHeaders: ['Content-Type', 'Authorization']
 });
 
+const distPath = path.join(__dirname, '../dist');
+
+fastify.register(require('@fastify/static'), {
+  root: distPath,
+  prefix: '/', // ឱ្យវាស្គាល់រាល់ file ទាំងអស់ចាប់ពី root ទៅ
+  wildcard: false // បិទ wildcard ត្រង់នេះ ដើម្បីកុំឱ្យជាន់ជាមួយ route ខាងក្រោម
+});
+// ២. បង្កើត Route ដើម្បីឱ្យវាបើក index.html ជាដំបូង
+fastify.get('/*', (req, reply) => {
+  return reply.sendFile('index.html');
+});
 // ================= JWT =================
 fastify.register(require('@fastify/jwt'), {
-  secret: process.env.JWT_SECRET || 'supersecretkey'
+  secret: 'supersecretkey'
 });
 
 // ================= DB =================
@@ -21,17 +31,16 @@ const db = mysql.createPool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  password:process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   timezone: '+07:00',
   dateStrings: true,
   ssl: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false // ត្រូវតែមានបន្ទាត់នេះ ទើបអាចភ្ជាប់ទៅ Cloud បាន
   }
 });
-
 // ================= AUTH =================
 fastify.decorate('authenticate', async (req, reply) => {
   try {
@@ -74,136 +83,133 @@ async function createNotificationForAll(title, message, type) {
 // ================= INIT DATABASE =================
 async function initDatabase() {
   const conn = await db.getConnection();
-  try {
-    await conn.query("SET time_zone = '+07:00'");
+  await conn.query("SET time_zone = '+07:00'");
 
-    // Users table
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(50) UNIQUE,
-        password VARCHAR(255) NULL, 
-        role VARCHAR(20) DEFAULT 'user',
-        email VARCHAR(100) NULL,
-        github_id VARCHAR(100) NULL UNIQUE, 
-        fullname VARCHAR(100) NULL,
-        phone VARCHAR(20) NULL,
-        address TEXT NULL,
-        avatar VARCHAR(500) NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB
-    `);
+  // Users table
+await conn.query(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE,
+    password VARCHAR(255) NULL, 
+    role VARCHAR(20) DEFAULT 'user',
+    email VARCHAR(100) NULL,
+    github_id VARCHAR(100) NULL UNIQUE, 
+    fullname VARCHAR(100) NULL,
+    phone VARCHAR(20) NULL,
+    address TEXT NULL,
+    avatar VARCHAR(500) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`);
 
-    // Login history table
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS login_history (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT,
-        username VARCHAR(50),
-        login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        ip_address VARCHAR(50),
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      ) ENGINE=InnoDB
-    `);
-    
-    // Products table
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS products (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        barcode VARCHAR(100) UNIQUE,
-        category VARCHAR(100) DEFAULT 'Uncategorized',
-        price DECIMAL(10,2) NOT NULL,
-        image VARCHAR(500) NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  // Login history table
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS login_history (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT,
+      username VARCHAR(50),
+      login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      ip_address VARCHAR(50)
+    )
+  `);
 
-    // Product transactions table
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS product_transactions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        product_id INT NOT NULL,
-        qty INT NOT NULL,
-        status ENUM('IN', 'SALE') NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-      )
-    `);
+  // Products table
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS products (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      barcode VARCHAR(100) UNIQUE,
+      category VARCHAR(100) DEFAULT 'Uncategorized',
+      price DECIMAL(10,2) NOT NULL,
+      image VARCHAR(500) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-    // Sales table
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS sales (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        receipt_number VARCHAR(50) UNIQUE NOT NULL,
-        total_amount DECIMAL(10,2) NOT NULL,
-        payment_method VARCHAR(50) DEFAULT 'Cash',
-        payment_status ENUM('Paid', 'Unpaid', 'Pending') DEFAULT 'Paid',
-        customer_name VARCHAR(100) NULL,
-        customer_phone VARCHAR(20) NULL,
-        customer_email VARCHAR(100) NULL,
-        reference_number VARCHAR(100) NULL,
-        status VARCHAR(20) DEFAULT 'Completed',
-        currency VARCHAR(10) DEFAULT 'USD',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  // Product transactions table
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS product_transactions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      product_id INT NOT NULL,
+      qty INT NOT NULL,
+      status ENUM('IN', 'SALE') NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    )
+  `);
 
-    // Customers table
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS customers (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        phone VARCHAR(20) NULL,
-        email VARCHAR(100) NULL,
-        address TEXT NULL,
-        total_spent DECIMAL(10,2) DEFAULT 0,
-        point INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  // Sales table
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS sales (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      receipt_number VARCHAR(50) UNIQUE NOT NULL,
+      total_amount DECIMAL(10,2) NOT NULL,
+      payment_method VARCHAR(50) DEFAULT 'Cash',
+      payment_status ENUM('Paid', 'Unpaid', 'Pending') DEFAULT 'Paid',
+      customer_name VARCHAR(100) NULL,
+      customer_phone VARCHAR(20) NULL,
+      customer_email VARCHAR(100) NULL,
+      reference_number VARCHAR(100) NULL,
+      status VARCHAR(20) DEFAULT 'Completed',
+      currency VARCHAR(10) DEFAULT 'USD',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-    // Sale items table
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS sale_items (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        sale_id INT NOT NULL,
-        product_id INT NOT NULL,
-        quantity INT NOT NULL,
-        unit_price DECIMAL(10,2) NOT NULL,
-        total_price DECIMAL(10,2) NOT NULL,
-        FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
-        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-      )
-    `);
+  // Customers table
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      phone VARCHAR(20) NULL,
+      email VARCHAR(100) NULL,
+      address TEXT NULL,
+      total_spent DECIMAL(10,2) DEFAULT 0,
+      point INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-    // Notifications table
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS notifications (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NULL,
-        title VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        type ENUM('success', 'warning', 'info', 'error') DEFAULT 'info',
-        is_read BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      )
-    `);
+  // Sale items table
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS sale_items (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      sale_id INT NOT NULL,
+      product_id INT NOT NULL,
+      quantity INT NOT NULL,
+      unit_price DECIMAL(10,2) NOT NULL,
+      total_price DECIMAL(10,2) NOT NULL,
+      FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    )
+  `);
 
-    // Insert default admin
-    const [admin] = await conn.query("SELECT id FROM users WHERE username='admin'");
-    if (admin.length === 0) {
-      const hash = await bcrypt.hash('admin123', 10);
-      await conn.query(
-        "INSERT INTO users (username, password, role, fullname) VALUES (?, ?, ?, ?)",
-        ['admin', hash, 'admin', 'System Administrator']
-      );
-    }
-    console.log('✅ Database tables initialized');
-  } finally {
-    conn.release();
+  // Notifications table
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NULL,
+      title VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      type ENUM('success', 'warning', 'info', 'error') DEFAULT 'info',
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Insert default admin
+  const [admin] = await conn.query("SELECT id FROM users WHERE username='admin'");
+  if (admin.length === 0) {
+    const hash = await bcrypt.hash('admin123', 10);
+    await conn.query(
+      "INSERT INTO users (username, password, role, fullname) VALUES (?, ?, ?, ?)",
+      ['admin', hash, 'admin', 'System Administrator']
+    );
+    await createNotification(1, 'Welcome to POS System!', 'Thank you for using our POS system.', 'success');
   }
+
+  conn.release();
 }
 initDatabase();
 
@@ -244,39 +250,36 @@ async function initCompanyTable() {
 }
 initCompanyTable();
 
-// ================= ALL API ROUTES GO HERE =================
-// (These must come BEFORE static files)
-
-// LOGIN
+// ================= LOGIN =================
 fastify.post('/api/login', async (req, reply) => {
+  const { username, password } = req.body;
+  const [rows] = await db.query("SELECT * FROM users WHERE username=?", [username]);
+  if (!rows.length) return reply.code(401).send({ message: "User not found" });
+
+  const user = rows[0];
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) return reply.code(401).send({ message: "Wrong password" });
+
+  const token = fastify.jwt.sign({ id: user.id, username: user.username, role: user.role });
+  
+  const ip = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress || '127.0.0.1';
+  
   try {
-    const { username, password } = req.body;
-    const [rows] = await db.query("SELECT * FROM users WHERE username=?", [username]);
-    
-    if (!rows.length) return reply.code(401).send({ message: "User not found" });
-
-    const user = rows[0];
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return reply.code(401).send({ message: "Wrong password" });
-
-    const token = fastify.jwt.sign({ id: user.id, username: user.username, role: user.role });
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.ip || '0.0.0.0';
-    
     await db.query(
-      "INSERT INTO login_history (user_id, username, ip_address) VALUES (?, ?, ?)", 
+      "INSERT INTO login_history (user_id, username, ip_address, login_time) VALUES (?, ?, ?, NOW())", 
       [user.id, user.username, ip]
     );
-
-    const { password: _, ...userWithoutPassword } = user;
-    return reply.send({ token, user: userWithoutPassword });
+    console.log(`✅ Login recorded for user: ${username} from IP: ${ip}`);
   } catch (err) {
-    fastify.log.error(err);
-    return reply.code(500).send({ message: "Internal Server Error" });
+    console.error("Failed to record login history:", err);
   }
+
+  const { password: _, ...userWithoutPassword } = user;
+  reply.send({ token, user: userWithoutPassword });
 });
 
-// USERS
-fastify.get('/api/users', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+// ================= USERS =================
+fastify.get('/users', { preHandler: [fastify.authenticate] }, async (req, reply) => {
   if (req.user.role !== 'admin') {
     return reply.code(403).send({ message: 'Admin access required' });
   }
@@ -304,7 +307,7 @@ fastify.get('/api/users', { preHandler: [fastify.authenticate] }, async (req, re
   reply.send(rows);
 });
 
-fastify.get('/api/users/:id', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+fastify.get('/users/:id', { preHandler: [fastify.authenticate] }, async (req, reply) => {
   if (req.user.role !== 'admin' && req.user.id !== parseInt(req.params.id)) {
     return reply.code(403).send({ message: 'Access denied' });
   }
@@ -318,7 +321,7 @@ fastify.get('/api/users/:id', { preHandler: [fastify.authenticate] }, async (req
   reply.send(rows[0]);
 });
 
-fastify.post('/api/users', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+fastify.post('/users', { preHandler: [fastify.authenticate] }, async (req, reply) => {
   if (req.user.role !== 'admin') {
     return reply.code(403).send({ message: 'Admin access required' });
   }
@@ -333,7 +336,7 @@ fastify.post('/api/users', { preHandler: [fastify.authenticate] }, async (req, r
   reply.send({ message: "User created", id: result.insertId });
 });
 
-fastify.put('/api/users/:id', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+fastify.put('/users/:id', { preHandler: [fastify.authenticate] }, async (req, reply) => {
   if (req.user.role !== 'admin' && req.user.id !== parseInt(req.params.id)) {
     return reply.code(403).send({ message: 'Access denied' });
   }
@@ -365,7 +368,7 @@ fastify.put('/api/users/:id', { preHandler: [fastify.authenticate] }, async (req
   reply.send({ message: "Updated" });
 });
 
-fastify.delete('/api/users/:id', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+fastify.delete('/users/:id', { preHandler: [fastify.authenticate] }, async (req, reply) => {
   if (req.user.role !== 'admin') {
     return reply.code(403).send({ message: 'Admin access required' });
   }
@@ -376,7 +379,7 @@ fastify.delete('/api/users/:id', { preHandler: [fastify.authenticate] }, async (
   reply.send({ message: "Deleted" });
 });
 
-fastify.get('/api/login-history/:id', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+fastify.get('/login-history/:id', { preHandler: [fastify.authenticate] }, async (req, reply) => {
   if (req.user.role !== 'admin') {
     return reply.code(403).send({ message: 'Admin access required' });
   }
@@ -1243,21 +1246,8 @@ async function checkLowStock() {
 }
 setInterval(() => checkLowStock(), 30 * 60 * 1000);
 setTimeout(() => checkLowStock(), 5000);
-
-// ================= STATIC FILES (FRONTEND) - MUST BE LAST! =================
-const distPath = path.join(__dirname, '../dist');
-fastify.register(require('@fastify/static'), {
-  root: distPath,
-  prefix: '/',
-});
-
-// ================= SPA FALLBACK (FOR VUE ROUTER) - MUST BE ABSOLUTELY LAST =================
+// សម្រាប់ឱ្យ Vue Router ដើរ (SPA)
 fastify.setNotFoundHandler((req, reply) => {
-  // If it's an API request, return 404
-  if (req.raw.url?.startsWith('/api')) {
-    return reply.code(404).send({ error: 'API endpoint not found' });
-  }
-  // Otherwise, return index.html for Vue Router
   return reply.sendFile('index.html');
 });
 console.log("Connecting with User:", process.env.DB_USER);
@@ -1284,5 +1274,4 @@ db.getConnection()
   .catch(err => {
     console.error('❌ error! can not connect to Database Aiven:', err.message);
   });
-  
 start();
