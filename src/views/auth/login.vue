@@ -70,7 +70,7 @@ const isLocal = window.location.hostname === 'localhost' || window.location.host
 // បើ Local ប្រើ port 3002 បើលើ Render ប្រើ URL របស់បង
 const API_URL = isLocal 
   ? "http://localhost:3002/api" 
-  : "https://pos-backend-live.onrender.com/api";
+  : "https://pos-backend-live.onrender.com";
 
 const username = ref("");
 const password = ref("");

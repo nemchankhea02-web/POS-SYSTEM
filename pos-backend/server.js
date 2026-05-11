@@ -3,29 +3,27 @@ const fastify = require('fastify')({ logger: true });
 const mysql = require('mysql2/promise');
 const path = require('path');
 const bcrypt = require('bcrypt');
+
 // ================= CORS =================
+// ១. Register CORS ជាមុនគេបង្អស់
 fastify.register(require('@fastify/cors'), {
-  origin: "*",
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: "*", // ឬដាក់ Link frontend របស់បងដើម្បីសុវត្ថិភាព
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 });
 
-const distPath = path.join(__dirname, '../dist');
-
-fastify.register(require('@fastify/static'), {
-  root: distPath,
-  prefix: '/', // ឱ្យវាស្គាល់រាល់ file ទាំងអស់ចាប់ពី root ទៅ
-  wildcard: false // បិទ wildcard ត្រង់នេះ ដើម្បីកុំឱ្យជាន់ជាមួយ route ខាងក្រោម
-});
-// ២. បង្កើត Route ដើម្បីឱ្យវាបើក index.html ជាដំបូង
-fastify.get('/*', (req, reply) => {
-  return reply.sendFile('index.html');
-});
 // ================= JWT =================
 fastify.register(require('@fastify/jwt'), {
-  secret: 'supersecretkey'
+  secret: process.env.JWT_SECRET || 'supersecretkey'
 });
 
+// ================= STATIC FILES =================
+const distPath = path.join(__dirname, '../dist');
+fastify.register(require('@fastify/static'), {
+  root: distPath,
+  prefix: '/',
+  wildcard: false // ត្រូវតែដាក់ false
+});
 // ================= DB =================
 const db = mysql.createPool({
   host: process.env.DB_HOST,
@@ -252,30 +250,32 @@ initCompanyTable();
 
 // ================= LOGIN =================
 fastify.post('/api/login', async (req, reply) => {
-  const { username, password } = req.body;
-  const [rows] = await db.query("SELECT * FROM users WHERE username=?", [username]);
-  if (!rows.length) return reply.code(401).send({ message: "User not found" });
-
-  const user = rows[0];
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return reply.code(401).send({ message: "Wrong password" });
-
-  const token = fastify.jwt.sign({ id: user.id, username: user.username, role: user.role });
-  
-  const ip = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress || '127.0.0.1';
-  
   try {
+    const { username, password } = req.body;
+    const [rows] = await db.query("SELECT * FROM users WHERE username=?", [username]);
+    
+    if (!rows.length) return reply.code(401).send({ message: "User not found" });
+
+    const user = rows[0];
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return reply.code(401).send({ message: "Wrong password" });
+
+    const token = fastify.jwt.sign({ id: user.id, username: user.username, role: user.role });
+    
+    // ចាប់ IP ឱ្យបានត្រឹមត្រូវលើ Render
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.ip || '0.0.0.0';
+    
     await db.query(
-      "INSERT INTO login_history (user_id, username, ip_address, login_time) VALUES (?, ?, ?, NOW())", 
+      "INSERT INTO login_history (user_id, username, ip_address) VALUES (?, ?, ?)", 
       [user.id, user.username, ip]
     );
-    console.log(`✅ Login recorded for user: ${username} from IP: ${ip}`);
-  } catch (err) {
-    console.error("Failed to record login history:", err);
-  }
 
-  const { password: _, ...userWithoutPassword } = user;
-  reply.send({ token, user: userWithoutPassword });
+    const { password: _, ...userWithoutPassword } = user;
+    return reply.send({ token, user: userWithoutPassword });
+  } catch (err) {
+    fastify.log.error(err);
+    return reply.code(500).send({ message: "Internal Server Error" });
+  }
 });
 
 // ================= USERS =================
@@ -1246,10 +1246,16 @@ async function checkLowStock() {
 }
 setInterval(() => checkLowStock(), 30 * 60 * 1000);
 setTimeout(() => checkLowStock(), 5000);
-// សម្រាប់ឱ្យ Vue Router ដើរ (SPA)
-fastify.setNotFoundHandler((req, reply) => {
+// ================= CATCH-ALL ROUTE (SPA) =================
+// ដាក់នៅខាងក្រោមគេបង្អស់ ដើម្បីឱ្យវាដឹងថា បើមិនមែនជា API ទេ គឺឱ្យទៅ index.html
+fastify.get('/*', async (req, reply) => {
+  const url = req.raw.url;
+  if (url.startsWith('/api')) {
+    return reply.code(404).send({ message: "API endpoint not found" });
+  }
   return reply.sendFile('index.html');
 });
+
 console.log("Connecting with User:", process.env.DB_USER);
 console.log("Connecting to Host:", process.env.DB_HOST);
 console.log("Connecting to Port:", process.env.DB_PORT);
