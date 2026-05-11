@@ -7,9 +7,9 @@ const bcrypt = require('bcrypt');
 // ================= CORS =================
 // ១. Register CORS ជាមុនគេបង្អស់
 fastify.register(require('@fastify/cors'), {
-  origin: "*", // ឬដាក់ Link frontend របស់បងដើម្បីសុវត្ថិភាព
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: ["https://pos-system-amjf.onrender.com"], // ដាក់ Link frontend របស់បង
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
 });
 
 // ================= JWT =================

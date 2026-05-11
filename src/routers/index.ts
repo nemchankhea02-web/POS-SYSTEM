@@ -8,7 +8,7 @@ import Layout from "../layouts/layout.vue";
 const routes: RouteRecordRaw[] = [
   // Public Login Page
   {
-    path: "/login",
+    path: "/api/login",
     name: "login",
     component: () => import("../views/auth/login.vue"),
   },
