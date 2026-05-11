@@ -62,7 +62,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '../../api.js'; // ហៅ api.js ដែលបងបានរៀបចំទុកមកប្រើ
+import api from '../../api.js'; // Path នេះត្រូវហើយ
 
 const username = ref("");
 const password = ref("");
@@ -72,7 +72,7 @@ const router = useRouter();
 
 const handleLogin = async () => {
   if (!username.value || !password.value) {
-    errorMessage.value = "Please enter both username and password";
+    errorMessage.value = "Please enter username and password";
     return;
   }
 
@@ -80,8 +80,7 @@ const handleLogin = async () => {
   errorMessage.value = "";
 
   try {
-    // ចំណុចសំខាន់៖ បងមិនបាច់ដាក់ ${API_URL} ទៀតទេ 
-    // ព្រោះក្នុង api.js វាមាន baseURL រួចហើយ
+    // ហៅទៅកាន់ /login តែម្ដង ព្រោះ api.js ស្គាល់ URL ហើយ
     const res = await api.post('/login', {
       username: username.value,
       password: password.value
@@ -91,12 +90,53 @@ const handleLogin = async () => {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
       
-      // ទៅកាន់ Dashboard
-      router.push({ name: '/dashboard' }); 
+      // ប្តូរមកប្រើ Path ត្រង់ៗតែម្ដងដើម្បីកុំឱ្យច្រឡំ name
+      router.push('/dashboard'); 
     }
   } catch (err) {
     console.error("Login Error:", err);
-    errorMessage.value = err.response?.data?.message || "Connection failed. Check your internet.";
+    errorMessage.value = err.response?.data?.message || "Login failed. Check connection.";
+  } finally {
+    loading.value = false;
+  }
+};
+</script><script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import api from '../../api.js'; // Path នេះត្រូវហើយ
+
+const username = ref("");
+const password = ref("");
+const errorMessage = ref("");
+const loading = ref(false);
+const router = useRouter();
+
+const handleLogin = async () => {
+  if (!username.value || !password.value) {
+    errorMessage.value = "Please enter username and password";
+    return;
+  }
+
+  loading.value = true;
+  errorMessage.value = "";
+
+  try {
+    // ហៅទៅកាន់ /login តែម្ដង ព្រោះ api.js ស្គាល់ URL ហើយ
+    const res = await api.post('/login', {
+      username: username.value,
+      password: password.value
+    });
+
+    if (res.data.token) {
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      
+      // ប្តូរមកប្រើ Path ត្រង់ៗតែម្ដងដើម្បីកុំឱ្យច្រឡំ name
+      router.push('/dashboard'); 
+    }
+  } catch (err) {
+    console.error("Login Error:", err);
+    errorMessage.value = err.response?.data?.message || "Login failed. Check connection.";
   } finally {
     loading.value = false;
   }
