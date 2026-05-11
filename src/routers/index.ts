@@ -70,8 +70,8 @@ router.beforeEach((to, _from, next) => {
         role = payload.role;
       }
     } catch (e) {
-  localStorage.clear(); // លុបឱ្យអស់ កុំឱ្យវាវិលជុំ
-  next({ name: 'login' });
+  localStorage.removeItem('token'); // លុបចោលដើម្បីឈប់ឱ្យវាវិលជុំ
+  return next({ name: 'login' });
 }
   }
 
