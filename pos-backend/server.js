@@ -3,35 +3,33 @@ const fastify = require('fastify')({ logger: true });
 const mysql = require('mysql2/promise');
 const path = require('path');
 const bcrypt = require('bcrypt');
+
 // ================= CORS =================
+// អនុញ្ញាតឱ្យ Frontend ហៅ API បានដោយសេរី
 fastify.register(require('@fastify/cors'), {
   origin: "*",
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 });
 
+// ================= STATIC FILES (FRONTEND) =================
 const distPath = path.join(__dirname, '../dist');
-
 fastify.register(require('@fastify/static'), {
   root: distPath,
-  prefix: '/', // ឱ្យវាស្គាល់រាល់ file ទាំងអស់ចាប់ពី root ទៅ
-  wildcard: false // បិទ wildcard ត្រង់នេះ ដើម្បីកុំឱ្យជាន់ជាមួយ route ខាងក្រោម
-});
-// ២. បង្កើត Route ដើម្បីឱ្យវាបើក index.html ជាដំបូង
-fastify.get('/*', (req, reply) => {
-  return reply.sendFile('index.html');
-});
-// ================= JWT =================
-fastify.register(require('@fastify/jwt'), {
-  secret: 'supersecretkey'
+  prefix: '/',
+  wildcard: false // ការពារកុំឱ្យវាឆក់យក API routes
 });
 
+// ================= JWT =================
+fastify.register(require('@fastify/jwt'), {
+  secret: process.env.JWT_SECRET || 'supersecretkey'
+});
 // ================= DB =================
 const db = mysql.createPool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  password:process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
@@ -83,36 +81,37 @@ async function createNotificationForAll(title, message, type) {
 // ================= INIT DATABASE =================
 async function initDatabase() {
   const conn = await db.getConnection();
-  await conn.query("SET time_zone = '+07:00'");
+  try {
+    await conn.query("SET time_zone = '+07:00'");
 
-  // Users table
-await conn.query(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) UNIQUE,
-    password VARCHAR(255) NULL, 
-    role VARCHAR(20) DEFAULT 'user',
-    email VARCHAR(100) NULL,
-    github_id VARCHAR(100) NULL UNIQUE, 
-    fullname VARCHAR(100) NULL,
-    phone VARCHAR(20) NULL,
-    address TEXT NULL,
-    avatar VARCHAR(500) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+    // Users table
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) UNIQUE,
+        password VARCHAR(255) NULL, 
+        role VARCHAR(20) DEFAULT 'user',
+        email VARCHAR(100) NULL,
+        github_id VARCHAR(100) NULL UNIQUE, 
+        fullname VARCHAR(100) NULL,
+        phone VARCHAR(20) NULL,
+        address TEXT NULL,
+        avatar VARCHAR(500) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB
+    `);
 
-  // Login history table
-  await conn.query(`
-    CREATE TABLE IF NOT EXISTS login_history (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT,
-      username VARCHAR(50),
-      login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      ip_address VARCHAR(50)
-    )
-  `);
-
+    // Login history table
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS login_history (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT,
+        username VARCHAR(50),
+        login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        ip_address VARCHAR(50),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB
+    `);
   // Products table
   await conn.query(`
     CREATE TABLE IF NOT EXISTS products (
@@ -200,16 +199,17 @@ await conn.query(`
 
   // Insert default admin
   const [admin] = await conn.query("SELECT id FROM users WHERE username='admin'");
-  if (admin.length === 0) {
-    const hash = await bcrypt.hash('admin123', 10);
-    await conn.query(
-      "INSERT INTO users (username, password, role, fullname) VALUES (?, ?, ?, ?)",
-      ['admin', hash, 'admin', 'System Administrator']
-    );
-    await createNotification(1, 'Welcome to POS System!', 'Thank you for using our POS system.', 'success');
+    if (admin.length === 0) {
+      const hash = await bcrypt.hash('admin123', 10);
+      await conn.query(
+        "INSERT INTO users (username, password, role, fullname) VALUES (?, ?, ?, ?)",
+        ['admin', hash, 'admin', 'System Administrator']
+      );
+    }
+    console.log('✅ Database tables initialized');
+  } finally {
+    conn.release();
   }
-
-  conn.release();
 }
 initDatabase();
 
@@ -251,35 +251,37 @@ async function initCompanyTable() {
 initCompanyTable();
 
 // ================= LOGIN =================
+// 1. LOGIN
 fastify.post('/api/login', async (req, reply) => {
-  const { username, password } = req.body;
-  const [rows] = await db.query("SELECT * FROM users WHERE username=?", [username]);
-  if (!rows.length) return reply.code(401).send({ message: "User not found" });
-
-  const user = rows[0];
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return reply.code(401).send({ message: "Wrong password" });
-
-  const token = fastify.jwt.sign({ id: user.id, username: user.username, role: user.role });
-  
-  const ip = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress || '127.0.0.1';
-  
   try {
+    const { username, password } = req.body;
+    const [rows] = await db.query("SELECT * FROM users WHERE username=?", [username]);
+    
+    if (!rows.length) return reply.code(401).send({ message: "User not found" });
+
+    const user = rows[0];
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return reply.code(401).send({ message: "Wrong password" });
+
+    const token = fastify.jwt.sign({ id: user.id, username: user.username, role: user.role });
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.ip || '0.0.0.0';
+    
     await db.query(
-      "INSERT INTO login_history (user_id, username, ip_address, login_time) VALUES (?, ?, ?, NOW())", 
+      "INSERT INTO login_history (user_id, username, ip_address) VALUES (?, ?, ?)", 
       [user.id, user.username, ip]
     );
-    console.log(`✅ Login recorded for user: ${username} from IP: ${ip}`);
-  } catch (err) {
-    console.error("Failed to record login history:", err);
-  }
 
-  const { password: _, ...userWithoutPassword } = user;
-  reply.send({ token, user: userWithoutPassword });
+    const { password: _, ...userWithoutPassword } = user;
+    return reply.send({ token, user: userWithoutPassword });
+  } catch (err) {
+    fastify.log.error(err);
+    return reply.code(500).send({ message: "Internal Server Error" });
+  }
 });
 
+
 // ================= USERS =================
-fastify.get('/users', { preHandler: [fastify.authenticate] }, async (req, reply) => {
+fastify.get('/api/users', { preHandler: [fastify.authenticate] }, async (req, reply) => {
   if (req.user.role !== 'admin') {
     return reply.code(403).send({ message: 'Admin access required' });
   }
@@ -1250,6 +1252,15 @@ setTimeout(() => checkLowStock(), 5000);
 fastify.setNotFoundHandler((req, reply) => {
   return reply.sendFile('index.html');
 });
+fastify.get('/*', async (req, reply) => {
+  const url = req.raw.url;
+  // ប្រសិនបើជាការហៅ API តែរកមិនឃើញ ឱ្យចេញ 404
+  if (url.startsWith('/api')) {
+    return reply.code(404).send({ error: 'Not Found', message: `API route ${url} not found` });
+  }
+  // ប្រសិនបើមិនមែន API ទេ គឺឱ្យវាទៅកាន់ Frontend (Vue Router)
+  return reply.sendFile('index.html');
+});
 console.log("Connecting with User:", process.env.DB_USER);
 console.log("Connecting to Host:", process.env.DB_HOST);
 console.log("Connecting to Port:", process.env.DB_PORT);
@@ -1274,4 +1285,5 @@ db.getConnection()
   .catch(err => {
     console.error('❌ error! can not connect to Database Aiven:', err.message);
   });
+  
 start();

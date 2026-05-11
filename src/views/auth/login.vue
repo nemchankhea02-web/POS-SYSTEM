@@ -64,8 +64,12 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 
-// ១. បង្កើត Base URL សម្រាប់ API (ស្របតាម Backend លើ Render)
-const API_URL = "https://pos-backend-live.onrender.com/api";
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+// FIXED: Use the correct Render URL
+const API_URL = isLocal 
+  ? "http://localhost:3002/api" 
+  : "https://pos-system-amjf.onrender.com/api";
 
 const username = ref("");
 const password = ref("");
@@ -74,7 +78,6 @@ const loading = ref(false);
 const router = useRouter();
 
 const handleLogin = async () => {
-  // ការពារការចុចដដែលៗ និងសម្អាត Error ចាស់
   if (!username.value || !password.value) {
     errorMessage.value = "Please enter both username and password";
     return;
@@ -84,38 +87,29 @@ const handleLogin = async () => {
   errorMessage.value = "";
 
   try {
-    // ២. ហៅទៅកាន់ API_URL/login
     const res = await axios.post(`${API_URL}/login`, {
       username: username.value,
       password: password.value
     });
 
-    // រក្សាទុក Token និងព័ត៌មានអ្នកប្រើប្រាស់
     if (res.data.token) {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-      
-      // ទៅកាន់ទំព័រ Dashboard បន្ទាប់ពីជោគជ័យ
-      router.push({ name: 'dashboard' });
+      await router.push({ name: 'dashboard' });
     }
   } catch (err) {
     console.error("Login Error:", err);
-    // បង្ហាញ Error Message ពី Backend
-    errorMessage.value = err.response?.data?.message || "Connection failed. Check your internet.";
+    if (err.response) {
+      // Server responded with error status
+      errorMessage.value = err.response.data?.message || "Login failed";
+    } else if (err.request) {
+      // Request was made but no response (network error)
+      errorMessage.value = "Connection failed. Check your internet or server status.";
+    } else {
+      errorMessage.value = "An error occurred. Please try again.";
+    }
   } finally {
     loading.value = false;
   }
 };
 </script>
-
-<style scoped>
-/* ការប្រើប្រាស់ @apply តាមការចង់បានរបស់អ្នក */
-
-/* Animation */
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
-</style>
