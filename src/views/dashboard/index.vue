@@ -267,7 +267,7 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-import api from '../api.js'; // ទាញយក apiClient មកប្រើ
+import apihah from '../../api.js'; // ទាញយក apiClient មកប្រើ
 
 const fetchStats = async () => {
   try {
