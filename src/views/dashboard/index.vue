@@ -267,7 +267,16 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
+import api from '../api.js'; // ទាញយក apiClient មកប្រើ
 
+const fetchStats = async () => {
+  try {
+    const res = await api.get('/dashboard/stats'); // វានឹងកាន់ Token ទៅជាមួយអូតូ
+    stats.value = res.data;
+  } catch (error) {
+    console.error("Dashboard fetch error:", error);
+  }
+};
 const router = useRouter();
 const loading = ref(false);
 const error = ref(null);
