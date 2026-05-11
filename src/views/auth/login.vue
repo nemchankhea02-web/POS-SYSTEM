@@ -14,7 +14,7 @@
             v-model="username" 
             type="text" 
             class="form-input" 
-            placeholder="Enter username" 
+            placeholder="Enter username"
             :disabled="loading"
           />
         </div>
@@ -25,7 +25,7 @@
             v-model="password" 
             type="password" 
             class="form-input" 
-            placeholder="••••••••" 
+            placeholder="Enter password"
             @keyup.enter="handleLogin"
             :disabled="loading"
           />
@@ -43,39 +43,35 @@
           class="login-button"
         >
           <span v-if="!loading">Sign In</span>
-          <span v-else class="flex items-center justify-center">
-            <svg class="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Processing...
-          </span>
+          <span v-else>Processing...</span>
         </button>
+        
+        <!-- Debug info (remove after fixing) -->
+        <div class="debug-info" style="font-size: 12px; margin-top: 10px; color: #666;">
+          API URL: {{ apiUrl }}
+        </div>
       </div>
       
       <div class="login-footer">
-        by khea
+        BY KHEA
       </div>
     </div>
   </div>
 </template>
+
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
-
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-// FIXED: Use the correct Render URL
-const API_URL = isLocal 
-  ? "http://localhost:3002/api" 
-  : "https://pos-system-amjf.onrender.com/api";
 
 const username = ref("");
 const password = ref("");
 const errorMessage = ref("");
 const loading = ref(false);
 const router = useRouter();
+
+// Use relative URL
+const apiUrl = computed(() => '/api');
 
 const handleLogin = async () => {
   if (!username.value || !password.value) {
@@ -87,24 +83,29 @@ const handleLogin = async () => {
   errorMessage.value = "";
 
   try {
-    const res = await axios.post(`${API_URL}/login`, {
+    console.log('Attempting login to:', `${apiUrl.value}/login`);
+    
+    const res = await axios.post('/api/login', {
       username: username.value,
       password: password.value
     });
 
+    console.log('Login response:', res.data);
+
     if (res.data.token) {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-      await router.push({ name: 'dashboard' });
+      router.push({ name: 'dashboard' });
     }
   } catch (err) {
-    console.error("Login Error:", err);
+    console.error("Login Error Details:", err);
+    console.log("Error response:", err.response);
+    console.log("Error request:", err.request);
+    
     if (err.response) {
-      // Server responded with error status
-      errorMessage.value = err.response.data?.message || "Login failed";
+      errorMessage.value = err.response.data?.message || `Error ${err.response.status}: Login failed`;
     } else if (err.request) {
-      // Request was made but no response (network error)
-      errorMessage.value = "Connection failed. Check your internet or server status.";
+      errorMessage.value = "Cannot connect to server. Please check if backend is running.";
     } else {
       errorMessage.value = "An error occurred. Please try again.";
     }
