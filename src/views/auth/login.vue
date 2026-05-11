@@ -62,8 +62,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '../../api.js'; 
-  
+import api from '@/api.js';  
 
 // ឆែកមើលថាតើកំពុងរត់លើម៉ាស៊ីនបង (Local) ឬលើ Render
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';

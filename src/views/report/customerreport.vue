@@ -253,8 +253,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import api from '.././api.js'; 
-const customers = ref([])
+import api
+ from '@/api.js';const customers = ref([])
 const loading = ref(false)
 const showHistoryModal = ref(false)
 const selectedCustomer = ref(null)

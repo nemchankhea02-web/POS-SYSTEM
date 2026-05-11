@@ -256,8 +256,8 @@
 </template>
 
 <script setup>
+import api from '@/api.js';
 import { ref, computed, onMounted } from "vue"
-import api from '../../api.js'; 
 const search = ref("")
 const products = ref([])
 const loading = ref(false)

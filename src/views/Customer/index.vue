@@ -278,7 +278,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import api from '../../api.js'; 
+import api from '@/api.js';
 const customers = ref([])
 const loading = ref(false)
 const searchKeyword = ref('')

@@ -204,7 +204,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import api from '../../api.js'; 
+import api from '@/api.js';
 const router = useRouter();
 const route = useRoute();
 

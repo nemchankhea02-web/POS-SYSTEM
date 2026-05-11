@@ -195,7 +195,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '../../api.js'; 
+import api from '@/api.js';
 const router = useRouter()
 const notifications = ref([])
 const loading = ref(false)

@@ -223,7 +223,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import api from '../../api.js'; 
+import api from '@/api.js';
 const sales = ref([])
 const recentSales = ref([])
 const period = ref('year')

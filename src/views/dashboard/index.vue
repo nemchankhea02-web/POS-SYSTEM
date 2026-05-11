@@ -267,8 +267,7 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
 // ប្តូរពី import axios from "axios"; មកជា៖
-import api from '../../api.js'; 
-
+import api from '@/api.js';
 // ពេលហៅ API ត្រូវប្រើ api.get ឬ api.post
 const fetchStats = async () => {
   try {
